@@ -52,7 +52,7 @@ export default function Decode() {
       <div
         style={{
           maxWidth: 540,
-          margin: '40px auto',
+          margin: '0 auto',
           border: '4px solid #fff',
           borderRadius: 8,
           boxShadow: '0 0 32px #c0f4, 0 0 2px #000',
