@@ -1,103 +1,480 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+
+const fontStyle = {
+  fontFamily:
+    '"IBM Plex Mono", "Monaco", "Menlo", "Consolas", "Liberation Mono", "Courier New", monospace',
+  fontSize: '1.1rem',
+  letterSpacing: '0.02em',
+  fontWeight: 500,
+  textShadow: '0 1px 0 #fff, 0 0px 1px #000, 0 0 2px #0008',
+}
+
+const asciiWhatever = `
+  .ed"""" """$$$$be.
+-"           ^"$$$E  .
+-     .      $$$$F  .
+-    /$\     $$$$   .
+-   /$$$\   z$$$"  .
+-  /$$$$$\ $$$$"  .
+- /$$$$$$$\$$$"  .
+- $$$$$$$$$$$"  .
+- $$$$$$$$$$"  .
+- $$$$$$$$$"  .
+- $$$$$$$$"  .
+- $$$$$$$"  .
+- $$$$$$"  .
+- $$$$$"  .
+- $$$$"  .
+- $$$"  .
+- $$"  .
+- $"  .
+- .
+`
+
+const ENCODERS = [
+  { label: 'ZWSP', char: '\u200B', value: 'zwsp' },
+  { label: 'ZWNJ', char: '\u200C', value: 'zwnj' },
+  { label: 'U+2800', char: '\u2800', value: 'braille' },
+]
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [to, setTo] = useState('')
+  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [mode, setMode] = useState('normal')
+  const [encoder, setEncoder] = useState('zwsp')
+  const [obfuscate, setObfuscate] = useState(false)
+  const [salt, setSalt] = useState('')
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // --- Encoding Logic ---
+  function encodeInvisibleInk(
+    text,
+    encoderType = 'zwsp',
+    obfuscate = false,
+    salt = '',
+  ) {
+    let zero0, zero1
+    if (encoderType === 'zwsp') {
+      zero0 = '\u200B'
+      zero1 = '\u200C'
+    } else if (encoderType === 'zwnj') {
+      zero0 = '\u200C'
+      zero1 = '\u200B'
+    } else if (encoderType === 'braille') {
+      zero0 = '\u2800'
+      zero1 = '\u2801'
+    } else {
+      zero0 = '\u200B'
+      zero1 = '\u200C'
+    }
+    let bits = text
+      .split('')
+      .map((c) => c.charCodeAt(0).toString(2).padStart(8, '0'))
+      .join('')
+    if (obfuscate && salt) {
+      // XOR bits with salt (repeat salt as needed)
+      let saltBits = salt
+        .split('')
+        .map((c) => c.charCodeAt(0).toString(2).padStart(8, '0'))
+        .join('')
+      bits = bits
+        .split('')
+        .map((b, i) => (b ^ (saltBits[i % saltBits.length] || 0)).toString())
+        .join('')
+    }
+    return bits
+      .split('')
+      .map((b) => (b === '0' ? zero0 : zero1))
+      .join('')
+  }
+
+  // --- UI Handlers ---
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setStatus(null)
+    let outMsg = message
+    let outMode = mode
+    if (mode === 'invisible') {
+      const saltVal = obfuscate ? salt || Date.now().toString() : ''
+      outMsg = encodeInvisibleInk(message, encoder, obfuscate, saltVal)
+      outMode = 'invisible'
+    } else {
+      outMode = 'normal'
+    }
+    try {
+      const res = await fetch('/api/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, message: outMsg, mode: outMode }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setStatus('SMS sent!')
+        setMessage('')
+        setTo('')
+      } else {
+        setStatus(data.error || 'Failed to send SMS')
+      }
+    } catch (err) {
+      setStatus('Error sending SMS')
+    }
+    setLoading(false)
+  }
+
+  // --- UI ---
+  return (
+    <div
+      style={{
+        background: '#181a1b',
+        minHeight: '100vh',
+        padding: 0,
+        ...fontStyle,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 540,
+          margin: '40px auto',
+          border: '4px solid #fff',
+          borderRadius: 8,
+          boxShadow: '0 0 32px #0ff4, 0 0 2px #000',
+          background: '#23272a',
+          position: 'relative',
+        }}
+      >
+        {/* Window Title Bar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#111',
+            color: '#0ff',
+            borderBottom: '2px solid #fff',
+            padding: '0.5em 1em',
+            fontFamily: 'Chicago, Monaco, monospace',
+            fontSize: 18,
+            letterSpacing: 2,
+          }}
+        >
+          <span style={{ fontWeight: 700, letterSpacing: 2 }}>
+            NullSMS ▞▚▞▚▞▚
+          </span>
+          <span style={{ flex: 1 }}></span>
+          <button
+            aria-label="Minimize"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#f0f',
+              fontWeight: 700,
+              fontSize: 18,
+              cursor: 'pointer',
+              padding: 0,
+            }}
+            onClick={() => {
+              const main = document.getElementById('nullsms-main')
+              if (main)
+                main.style.display = main.style.display === 'none' ? '' : 'none'
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+            ☒
+          </button>
+        </div>
+        {/* Menu Bar */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 24,
+            background: '#222',
+            color: '#fff',
+            borderBottom: '2px solid #0ff',
+            padding: '0.3em 1em',
+            fontFamily: 'Chicago, Monaco, monospace',
+            fontSize: 15,
+          }}
+        >
+          <a
+            href="/"
+            style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
+          >
+            🗀 FILE
           </a>
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="/"
+            style={{ color: '#0ff', textDecoration: 'none', fontWeight: 500 }}
+          >
+            NullSMS
+          </a>
+          <a
+            href="/decode"
             target="_blank"
             rel="noopener noreferrer"
+            style={{ color: '#f0f', textDecoration: 'none', fontWeight: 500 }}
           >
-            Read our docs
+            Decode
+          </a>
+          <a
+            href="/"
+            style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
+          >
+            MODE
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        {/* ASCII */}
+        <pre
+          style={{
+            color: '#0ff',
+            background: 'none',
+            margin: 0,
+            padding: '0.5em 1em 0 1em',
+            fontSize: 12,
+            fontFamily: 'monospace',
+            opacity: 0.7,
+          }}
+          id="nullsms-main-skull"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {asciiWhatever}
+        </pre>
+        {/* Main Content */}
+        <div id="nullsms-main">
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+            }}
+          >
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 700, color: '#fff' }}>
+                To (phone number):
+              </label>
+              <input
+                type="tel"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                required
+                style={{
+                  ...fontStyle,
+                  width: '100%',
+                  marginTop: 4,
+                  padding: 8,
+                  border: '2px solid #0ff',
+                  borderRadius: 4,
+                  background: '#181a1b',
+                  color: '#0ff',
+                }}
+                placeholder="+1234567890"
+              />
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 700, color: '#fff' }}>
+                Compose NullSMS:
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value.slice(0, 256))}
+                required
+                maxLength={256}
+                style={{
+                  ...fontStyle,
+                  width: '100%',
+                  minHeight: 80,
+                  marginTop: 4,
+                  padding: 8,
+                  border: '2px solid #0ff',
+                  borderRadius: 4,
+                  background: '#181a1b',
+                  color: '#fff',
+                  resize: 'vertical',
+                }}
+                placeholder="Type your invisible message..."
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <span style={{ color: '#fff', fontWeight: 700 }}>
+                [▣] Encode using ▾
+              </span>
+              {ENCODERS.map((enc) => (
+                <label
+                  key={enc.value}
+                  style={{ color: '#0ff', fontWeight: 700, marginRight: 8 }}
+                >
+                  <input
+                    type="radio"
+                    name="encoder"
+                    value={enc.value}
+                    checked={encoder === enc.value}
+                    onChange={() => setEncoder(enc.value)}
+                    style={{ accentColor: '#0ff', marginRight: 2 }}
+                  />
+                  {enc.label}
+                </label>
+              ))}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <label style={{ color: '#fff', fontWeight: 500 }}>
+                <input
+                  type="checkbox"
+                  checked={obfuscate}
+                  onChange={(e) => setObfuscate(e.target.checked)}
+                  style={{ accentColor: '#f0f', marginRight: 4 }}
+                />
+                <span style={{ marginRight: 4 }} title="Obfuscate with salt">
+                  [✓]{' '}
+                  Obfuscate sequence with <span role="img" aria-label="Salt">
+                    🧂
+                  </span>
+                </span>
+              </label>
+              {obfuscate && (
+                <input
+                  type="text"
+                  value={salt}
+                  onChange={(e) => setSalt(e.target.value)}
+                  placeholder="Enter salt or leave blank for random"
+                  style={{
+                    ...fontStyle,
+                    width: 180,
+                    padding: 4,
+                    border: '1px solid #f0f',
+                    borderRadius: 4,
+                    background: '#23272a',
+                    color: '#f0f',
+                  }}
+                />
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  ...fontStyle,
+                  background: '#0ff',
+                  color: '#111',
+                  border: '2px solid #fff',
+                  borderRadius: 4,
+                  padding: '8px 18px',
+                  fontWeight: 900,
+                  fontSize: 18,
+                  boxShadow: '0 0 8px #0ff8',
+                }}
+              >
+                {loading ? 'Sending...' : 'Send SMS'}
+              </button>
+            </div>
+            {/* Live Preview */}
+            <div
+              style={{
+                background: '#111',
+                color: '#0ff',
+                border: '2px dashed #0ff',
+                borderRadius: 4,
+                padding: 12,
+                fontSize: 15,
+                fontFamily: 'monospace',
+                marginBottom: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <span style={{ fontWeight: 700, minWidth: 140 }}>
+                Invisible Ink Preview:
+              </span>
+              <pre
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  margin: 0,
+                  color: '#fff',
+                  background: 'none',
+                  flex: 1,
+                  fontSize: 16,
+                  padding: 0,
+                }}
+              >
+                {message
+                  ? encodeInvisibleInk(
+                      message,
+                      encoder,
+                      obfuscate,
+                      salt || Date.now().toString(),
+                    )
+                  : '(empty)'}
+              </pre>
+              <button
+                type="button"
+                style={{
+                  ...fontStyle,
+                  background: '#23272a',
+                  color: '#0ff',
+                  border: '2px solid #0ff',
+                  borderRadius: 4,
+                  padding: '6px 12px',
+                  fontWeight: 900,
+                  fontSize: 15,
+                  boxShadow: '0 0 8px #0ff8',
+                  marginLeft: 8,
+                }}
+                onClick={() => {
+                  const text = encodeInvisibleInk(
+                    message,
+                    encoder,
+                    obfuscate,
+                    salt || Date.now().toString(),
+                  )
+                  if (navigator.clipboard && text) {
+                    navigator.clipboard.writeText(text)
+                  }
+                }}
+                disabled={!message}
+                title="Copy invisible ink message"
+              >
+                Copy
+              </button>
+            </div>
+            {/* Status/Feedback */}
+            {status && (
+              <div
+                style={{
+                  background: '#f0f',
+                  color: '#111',
+                  border: '2px solid #fff',
+                  borderRadius: 4,
+                  padding: 10,
+                  fontWeight: 900,
+                  fontSize: 16,
+                  textAlign: 'center',
+                  marginTop: 8,
+                }}
+              >
+                {status}
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
