@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 const fontStyle = {
   fontFamily:
@@ -334,18 +335,18 @@ export default function Home() {
             fontSize: 15,
           }}
         >
-          <a
+          <Link
             href="/"
             style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
           >
             🗀 FILE
-          </a>
-          <a
+          </Link>
+          <Link
             href="/"
             style={{ color: '#0ff', textDecoration: 'none', fontWeight: 500 }}
           >
             NullSMS
-          </a>
+          </Link>
           <a
             href="/decode"
             target="_blank"

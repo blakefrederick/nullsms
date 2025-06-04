@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 const fontStyle = {
   fontFamily:
@@ -95,46 +96,30 @@ export default function Decode() {
             fontSize: 15,
           }}
         >
-          <a
+          <Link
             href="/"
-            style={{
-              color: '#fff',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
+            style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
           >
             🗀 FILE
-          </a>
-          <a
+          </Link>
+          <Link
             href="/"
-            style={{
-              color: '#f0f',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
+            style={{ color: '#f0f', textDecoration: 'none', fontWeight: 500 }}
           >
             NullSMS
-          </a>
+          </Link>
           <a
             href="/decode"
-            style={{
-              color: '#0ff',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
+            style={{ color: '#0ff', textDecoration: 'none', fontWeight: 500 }}
           >
             Decode
           </a>
-          <a
+          <Link
             href="/"
-            style={{
-              color: '#fff',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
+            style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
           >
             MODE
-          </a>
+          </Link>
         </div>
         <form
           onSubmit={handleDecode}
