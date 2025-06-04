@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const fontStyle = {
   fontFamily:
@@ -44,10 +44,12 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState('normal')
   const [encoder, setEncoder] = useState('zwsp')
   const [obfuscate, setObfuscate] = useState(false)
   const [salt, setSalt] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [password, setPassword] = useState('')
+  const [pendingSMS, setPendingSMS] = useState(null)
 
   // --- Encoding Logic ---
   function encodeInvisibleInk(
@@ -82,7 +84,7 @@ export default function Home() {
         .join('')
       bits = bits
         .split('')
-        .map((b, i) => (b ^ (saltBits[i % saltBits.length] || 0)).toString())
+        .map((b, i) => (parseInt(b) ^ parseInt(saltBits[i % saltBits.length] || 0)).toString())
         .join('')
     }
     return bits
@@ -91,31 +93,63 @@ export default function Home() {
       .join('')
   }
 
+  // On mount, set a cookie for user tracking if not present
+  useEffect(() => {
+    if (!document.cookie.includes('nullsms_uid')) {
+      document.cookie = `nullsms_uid=${Math.random().toString(36).slice(2)}; path=/; max-age=2592000; samesite=lax`
+    }
+  }, [])
+
   // --- UI Handlers ---
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setStatus(null)
-    let outMsg = message
-    let outMode = mode
-    if (mode === 'invisible') {
-      const saltVal = obfuscate ? salt || Date.now().toString() : ''
-      outMsg = encodeInvisibleInk(message, encoder, obfuscate, saltVal)
-      outMode = 'invisible'
-    } else {
-      outMode = 'normal'
-    }
+    // Always encode as invisible ink
+    const saltVal = obfuscate ? (salt || Date.now().toString()) : ''
+    const outMsg = encodeInvisibleInk(message, encoder, obfuscate, saltVal)
     try {
       const res = await fetch('/api/sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, message: outMsg, mode: outMode }),
+        body: JSON.stringify({ to, message: outMsg, mode: 'invisible' }),
       })
       const data = await res.json()
       if (data.success) {
         setStatus('SMS sent!')
         setMessage('')
         setTo('')
+      } else if (data.requirePassword) {
+        setShowPassword(true)
+        setPendingSMS({ to, message: outMsg, mode: 'invisible' })
+      } else {
+        setStatus(data.error || 'Failed to send SMS')
+      }
+    } catch (err) {
+      setStatus('Error sending SMS')
+    }
+    setLoading(false)
+  }
+
+  // Handle password submit
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setStatus(null)
+    try {
+      const res = await fetch('/api/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...pendingSMS, password }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setStatus('SMS sent!')
+        setMessage('')
+        setTo('')
+        setShowPassword(false)
+        setPassword('')
+        setPendingSMS(null)
       } else {
         setStatus(data.error || 'Failed to send SMS')
       }
@@ -135,6 +169,109 @@ export default function Home() {
         ...fontStyle,
       }}
     >
+      {/* Password Dialog */}
+      {showPassword && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <form
+            onSubmit={handlePasswordSubmit}
+            style={{
+              background: '#23272a',
+              border: '3px solid #0ff',
+              borderRadius: 8,
+              padding: 32,
+              boxShadow: '0 0 32px #0ff8',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+              minWidth: 320,
+            }}
+          >
+            <label style={{ color: '#fff', fontWeight: 700, fontSize: 18 }}>
+              Usage is currently limited to 1 message per day. <br/>
+              Or enter a special password to send more:
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                ...fontStyle,
+                padding: 8,
+                border: '2px solid #0ff',
+                borderRadius: 4,
+                background: '#181a1b',
+                color: '#0ff',
+                fontSize: 18,
+              }}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                ...fontStyle,
+                background: '#0ff',
+                color: '#111',
+                border: '2px solid #fff',
+                borderRadius: 4,
+                padding: '8px 18px',
+                fontWeight: 900,
+                fontSize: 18,
+                boxShadow: '0 0 8px #0ff8',
+              }}
+            >
+              {loading ? 'Sending...' : 'Send SMS'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPassword(false)}
+              style={{
+                ...fontStyle,
+                background: '#23272a',
+                color: '#f0f',
+                border: '2px solid #f0f',
+                borderRadius: 4,
+                padding: '8px 18px',
+                fontWeight: 900,
+                fontSize: 16,
+                marginTop: 8,
+              }}
+            >
+              Cancel
+            </button>
+            {status && (
+              <div
+                style={{
+                  background: '#f0f',
+                  color: '#111',
+                  border: '2px solid #fff',
+                  borderRadius: 4,
+                  padding: 10,
+                  fontWeight: 900,
+                  fontSize: 16,
+                  textAlign: 'center',
+                  marginTop: 8,
+                }}
+              >
+                {status}
+              </div>
+            )}
+          </form>
+        </div>
+      )}
       <div
         style={{
           maxWidth: 540,
@@ -217,12 +354,6 @@ export default function Home() {
           >
             Decode
           </a>
-          <a
-            href="/"
-            style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
-          >
-            MODE
-          </a>
         </div>
         {/* ASCII */}
         <pre
@@ -296,33 +427,28 @@ export default function Home() {
                 placeholder="Type your invisible message..."
               />
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                marginBottom: 8,
-              }}
-            >
-              <span style={{ color: '#fff', fontWeight: 700 }}>
-                [▣] Encode using ▾
-              </span>
-              {ENCODERS.map((enc) => (
-                <label
-                  key={enc.value}
-                  style={{ color: '#0ff', fontWeight: 700, marginRight: 8 }}
-                >
-                  <input
-                    type="radio"
-                    name="encoder"
-                    value={enc.value}
-                    checked={encoder === enc.value}
-                    onChange={() => setEncoder(enc.value)}
-                    style={{ accentColor: '#0ff', marginRight: 2 }}
-                  />
-                  {enc.label}
-                </label>
-              ))}
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 700, color: '#fff' }}>
+                Encoding:
+              </label>
+              <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                {ENCODERS.map((enc) => (
+                  <label
+                    key={enc.value}
+                    style={{ color: '#0ff', fontWeight: 700, marginRight: 8 }}
+                  >
+                    <input
+                      type="radio"
+                      name="encoder"
+                      value={enc.value}
+                      checked={encoder === enc.value}
+                      onChange={() => setEncoder(enc.value)}
+                      style={{ accentColor: '#0ff', marginRight: 2 }}
+                    />
+                    {enc.label}
+                  </label>
+                ))}
+              </div>
             </div>
             <div
               style={{
