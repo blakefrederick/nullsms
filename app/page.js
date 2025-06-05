@@ -435,7 +435,7 @@ export default function Home() {
             }}
             id="nullsms-main-skull"
           >
-            {asciiWhatever}
+            {/* {asciiWhatever} */}
           </pre>
         )}
         {/* Main Content */}
