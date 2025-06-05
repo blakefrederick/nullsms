@@ -24,3 +24,7 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.nullsms-placeholder::placeholder {
+  opacity: 0.7 !important;
+}

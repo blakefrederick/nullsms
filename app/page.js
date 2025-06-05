@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
 const fontStyle = {
@@ -51,6 +51,10 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState('')
   const [pendingSMS, setPendingSMS] = useState(null)
+  const [copyFeedback, setCopyFeedback] = useState(false)
+  const asciiRef = useRef(null)
+  const [collapsed, setCollapsed] = useState(false)
+  const [showFileModal, setShowFileModal] = useState(false)
 
   // --- Encoding Logic ---
   function encodeInvisibleInk(
@@ -276,7 +280,7 @@ export default function Home() {
       <div
         style={{
           maxWidth: 540,
-          margin: '0 auto',
+          margin: '40px auto',
           border: '4px solid #fff',
           borderRadius: 8,
           boxShadow: '0 0 32px #0ff4, 0 0 2px #000',
@@ -314,9 +318,7 @@ export default function Home() {
               padding: 0,
             }}
             onClick={() => {
-              const main = document.getElementById('nullsms-main')
-              if (main)
-                main.style.display = main.style.display === 'none' ? '' : 'none'
+              setCollapsed((c) => !c)
             }}
           >
             ☒
@@ -335,272 +337,349 @@ export default function Home() {
             fontSize: 15,
           }}
         >
-          <Link
-            href="/"
-            style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}
+          <button
+            type="button"
+            onClick={() => setShowFileModal(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              textDecoration: 'none',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontSize: 'inherit',
+              padding: 0,
+            }}
           >
             🗀 FILE
-          </Link>
+          </button>
           <Link
             href="/"
             style={{ color: '#0ff', textDecoration: 'none', fontWeight: 500 }}
           >
             NullSMS
           </Link>
-          <a
+          <Link
             href="/decode"
-            target="_blank"
-            rel="noopener noreferrer"
             style={{ color: '#f0f', textDecoration: 'none', fontWeight: 500 }}
           >
             Decode
-          </a>
+          </Link>
         </div>
-        {/* ASCII */}
-        <pre
-          style={{
-            color: '#0ff',
-            background: 'none',
-            margin: 0,
-            padding: '0.5em 1em 0 1em',
-            fontSize: 12,
-            fontFamily: 'monospace',
-            opacity: 0.7,
-          }}
-          id="nullsms-main-skull"
-        >
-          {asciiWhatever}
-        </pre>
-        {/* Main Content */}
-        <div id="nullsms-main">
-          <form
-            onSubmit={handleSubmit}
+        {/* Modal for FILE */}
+        {showFileModal && (
+          <div
             style={{
-              padding: 24,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 10000,
               display: 'flex',
-              flexDirection: 'column',
-              gap: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
+            onClick={() => setShowFileModal(false)}
           >
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ fontWeight: 700, color: '#fff' }}>
-                To (phone number):
-              </label>
-              <input
-                type="tel"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                required
-                style={{
-                  ...fontStyle,
-                  width: '100%',
-                  marginTop: 4,
-                  padding: 8,
-                  border: '2px solid #0ff',
-                  borderRadius: 4,
-                  background: '#181a1b',
-                  color: '#0ff',
-                }}
-                placeholder="+1234567890"
-              />
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ fontWeight: 700, color: '#fff' }}>
-                Compose NullSMS:
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value.slice(0, 256))}
-                required
-                maxLength={256}
-                style={{
-                  ...fontStyle,
-                  width: '100%',
-                  minHeight: 80,
-                  marginTop: 4,
-                  padding: 8,
-                  border: '2px solid #0ff',
-                  borderRadius: 4,
-                  background: '#181a1b',
-                  color: '#fff',
-                  resize: 'vertical',
-                }}
-                placeholder="Type your invisible message..."
-              />
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ fontWeight: 700, color: '#fff' }}>
-                Encoding:
-              </label>
-              <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                {ENCODERS.map((enc) => (
-                  <label
-                    key={enc.value}
-                    style={{ color: '#0ff', fontWeight: 700, marginRight: 8 }}
-                  >
-                    <input
-                      type="radio"
-                      name="encoder"
-                      value={enc.value}
-                      checked={encoder === enc.value}
-                      onChange={() => setEncoder(enc.value)}
-                      style={{ accentColor: '#0ff', marginRight: 2 }}
-                    />
-                    {enc.label}
-                  </label>
-                ))}
-              </div>
-            </div>
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                marginBottom: 8,
+                background: '#23272a',
+                border: '3px solid #0ff',
+                borderRadius: 10,
+                padding: '32px 40px',
+                boxShadow: '0 0 32px #0ff8',
+                minWidth: 260,
+                textAlign: 'center',
+                position: 'relative',
               }}
+              onClick={e => e.stopPropagation()}
             >
-              <label style={{ color: '#fff', fontWeight: 500 }}>
-                <input
-                  type="checkbox"
-                  checked={obfuscate}
-                  onChange={(e) => setObfuscate(e.target.checked)}
-                  style={{ accentColor: '#f0f', marginRight: 4 }}
-                />
-                <span style={{ marginRight: 4 }} title="Obfuscate with salt">
-                  [✓]{' '}
-                  Obfuscate sequence with <span role="img" aria-label="Salt">
-                    🧂
-                  </span>
-                </span>
-              </label>
-              {obfuscate && (
-                <input
-                  type="text"
-                  value={salt}
-                  onChange={(e) => setSalt(e.target.value)}
-                  placeholder="Enter salt or leave blank for random"
-                  style={{
-                    ...fontStyle,
-                    width: 180,
-                    padding: 4,
-                    border: '1px solid #f0f',
-                    borderRadius: 4,
-                    background: '#23272a',
-                    color: '#f0f',
-                  }}
-                />
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 20, marginBottom: 12 }}>
+                No FILE exists
+              </div>
               <button
-                type="submit"
-                disabled={loading}
+                onClick={() => setShowFileModal(false)}
                 style={{
-                  ...fontStyle,
+                  marginTop: 16,
                   background: '#0ff',
                   color: '#111',
                   border: '2px solid #fff',
                   borderRadius: 4,
                   padding: '8px 18px',
                   fontWeight: 900,
-                  fontSize: 18,
+                  fontSize: 16,
                   boxShadow: '0 0 8px #0ff8',
+                  cursor: 'pointer',
                 }}
               >
-                {loading ? 'Sending...' : 'Send SMS'}
+                Close
               </button>
             </div>
-            {/* Live Preview */}
-            <div
+          </div>
+        )}
+        {/* ASCII */}
+        {!collapsed && (
+          <pre
+            ref={asciiRef}
+            style={{
+              color: '#0ff',
+              background: 'none',
+              margin: 0,
+              padding: '0.5em 1em 0 1em',
+              fontSize: 12,
+              fontFamily: 'monospace',
+              opacity: 0.7,
+              transition: 'opacity 0.2s',
+            }}
+            id="nullsms-main-skull"
+          >
+            {asciiWhatever}
+          </pre>
+        )}
+        {/* Main Content */}
+        {!collapsed && (
+          <div id="nullsms-main">
+            <form
+              onSubmit={handleSubmit}
               style={{
-                background: '#111',
-                color: '#0ff',
-                border: '2px dashed #0ff',
-                borderRadius: 4,
-                padding: 12,
-                fontSize: 15,
-                fontFamily: 'monospace',
-                marginBottom: 8,
+                padding: 24,
                 display: 'flex',
-                alignItems: 'center',
-                gap: 12,
+                flexDirection: 'column',
+                gap: 18,
               }}
             >
-              <span style={{ fontWeight: 700, minWidth: 140 }}>
-                Invisible Ink Preview:
-              </span>
-              <pre
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontWeight: 700, color: '#fff' }}>
+                  To (phone number):
+                </label>
+                <input
+                  type="tel"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  required
+                  style={{
+                    ...fontStyle,
+                    width: '100%',
+                    marginTop: 4,
+                    padding: 8,
+                    border: '2px solid #0ff',
+                    borderRadius: 4,
+                    background: '#181a1b',
+                    color: '#0ff',
+                  }}
+                  placeholder="+15554567890"
+                  // Less opacity for placeholder
+                  className="nullsms-placeholder"
+                />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontWeight: 700, color: '#fff' }}>
+                  Compose NullSMS:
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value.slice(0, 256))}
+                  required
+                  maxLength={256}
+                  style={{
+                    ...fontStyle,
+                    width: '100%',
+                    minHeight: 80,
+                    marginTop: 4,
+                    padding: 8,
+                    border: '2px solid #0ff',
+                    borderRadius: 4,
+                    background: '#181a1b',
+                    color: '#fff',
+                    resize: 'vertical',
+                  }}
+                  placeholder="Type your message..."
+                  className="nullsms-placeholder"
+                />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontWeight: 700, color: '#fff' }}>
+                  Encoding:
+                </label>
+                <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                  {ENCODERS.map((enc) => (
+                    <label
+                      key={enc.value}
+                      style={{ color: '#0ff', fontWeight: 700, marginRight: 8 }}
+                    >
+                      <input
+                        type="radio"
+                        name="encoder"
+                        value={enc.value}
+                        checked={encoder === enc.value}
+                        onChange={() => setEncoder(enc.value)}
+                        style={{ accentColor: '#0ff', marginRight: 2 }}
+                      />
+                      {enc.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div
                 style={{
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all',
-                  margin: 0,
-                  color: '#fff',
-                  background: 'none',
-                  flex: 1,
-                  fontSize: 16,
-                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: 8,
                 }}
               >
-                {message
-                  ? encodeInvisibleInk(
+                <label style={{ color: '#fff', fontWeight: 500 }}>
+                  <input
+                    type="checkbox"
+                    checked={obfuscate}
+                    onChange={(e) => setObfuscate(e.target.checked)}
+                    style={{ accentColor: '#f0f', marginRight: 4 }}
+                  />
+                  <span style={{ marginRight: 4 }} title="Obfuscate with salt">
+                    {' '}
+                    Obfuscate with <span role="img" aria-label="Salt">
+                      🧂
+                    </span>
+                  </span>
+                </label>
+                {obfuscate && (
+                  <input
+                    type="text"
+                    value={salt}
+                    onChange={(e) => setSalt(e.target.value)}
+                    placeholder="Enter salt"
+                    style={{
+                      ...fontStyle,
+                      width: 140,
+                      padding: 4,
+                      border: '1px solid #f0f',
+                      borderRadius: 4,
+                      background: '#23272a',
+                      color: '#f0f',
+                      fontSize: 12,
+                    }}
+                    className="nullsms-placeholder"
+                  />
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    ...fontStyle,
+                    background: '#0ff',
+                    color: '#111',
+                    border: '2px solid #fff',
+                    borderRadius: 4,
+                    padding: '8px 18px',
+                    fontWeight: 900,
+                    fontSize: 18,
+                    boxShadow: '0 0 8px #0ff8',
+                  }}
+                >
+                  {loading ? 'Sending...' : 'Send SMS'}
+                </button>
+              </div>
+              {/* Responsive Preview */}
+              <div
+                style={{
+                  background: '#111',
+                  color: '#0ff',
+                  border: '2px dashed #0ff',
+                  borderRadius: 4,
+                  padding: 12,
+                  fontSize: 15,
+                  fontFamily: 'monospace',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                  minHeight: 40,
+                }}
+              >
+                <pre
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                    margin: 0,
+                    color: '#fff',
+                    background: 'none',
+                    flex: 1,
+                    fontSize: 16,
+                    padding: 0,
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    overflowX: 'auto',
+                  }}
+                >
+                  {message
+                    ? encodeInvisibleInk(
+                        message,
+                        encoder,
+                        obfuscate,
+                        salt || Date.now().toString(),
+                      )
+                    : ''}
+                </pre>
+                <button
+                  type="button"
+                  style={{
+                    ...fontStyle,
+                    background: '#23272a',
+                    color: copyFeedback ? '#0f0' : '#0ff',
+                    border: '2px solid #0ff',
+                    borderRadius: 4,
+                    padding: '6px 12px',
+                    fontWeight: 900,
+                    fontSize: 15,
+                    boxShadow: '0 0 8px #0ff8',
+                    marginLeft: 8,
+                    transition: 'color 0.2s',
+                  }}
+                  onClick={async () => {
+                    const text = encodeInvisibleInk(
                       message,
                       encoder,
                       obfuscate,
                       salt || Date.now().toString(),
                     )
-                  : '(empty)'}
-              </pre>
-              <button
-                type="button"
-                style={{
-                  ...fontStyle,
-                  background: '#23272a',
-                  color: '#0ff',
-                  border: '2px solid #0ff',
-                  borderRadius: 4,
-                  padding: '6px 12px',
-                  fontWeight: 900,
-                  fontSize: 15,
-                  boxShadow: '0 0 8px #0ff8',
-                  marginLeft: 8,
-                }}
-                onClick={() => {
-                  const text = encodeInvisibleInk(
-                    message,
-                    encoder,
-                    obfuscate,
-                    salt || Date.now().toString(),
-                  )
-                  if (navigator.clipboard && text) {
-                    navigator.clipboard.writeText(text)
-                  }
-                }}
-                disabled={!message}
-                title="Copy invisible ink message"
-              >
-                Copy
-              </button>
-            </div>
-            {/* Status/Feedback */}
-            {status && (
-              <div
-                style={{
-                  background: '#f0f',
-                  color: '#111',
-                  border: '2px solid #fff',
-                  borderRadius: 4,
-                  padding: 10,
-                  fontWeight: 900,
-                  fontSize: 16,
-                  textAlign: 'center',
-                  marginTop: 8,
-                }}
-              >
-                {status}
+                    if (navigator.clipboard && text) {
+                      await navigator.clipboard.writeText(text)
+                      setCopyFeedback(true)
+                      setTimeout(() => setCopyFeedback(false), 1200)
+                    }
+                  }}
+                  disabled={!message}
+                  title="Copy invisible ink message"
+                >
+                  {copyFeedback ? 'Copied!' : 'Copy'}
+                </button>
               </div>
-            )}
-          </form>
-        </div>
+              {/* Status/Feedback */}
+              {status && (
+                <div
+                  style={{
+                    background: '#f0f',
+                    color: '#111',
+                    border: '2px solid #fff',
+                    borderRadius: 4,
+                    padding: 10,
+                    fontWeight: 900,
+                    fontSize: 16,
+                    textAlign: 'center',
+                    marginTop: 8,
+                  }}
+                >
+                  {status}
+                </div>
+              )}
+            </form>
+          </div>
+        )}
       </div>
     </div>
   )
