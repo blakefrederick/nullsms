@@ -691,15 +691,14 @@ export default function Home() {
                     {status}
                   </div>
                   <p style={{ color: '#eeeeee' }}>
-                    Recipient has been sent a blank message
-                    "&nbsp;&nbsp;&zwnj;&zwnj;" Use{' '}
+                    Recipient has been sent a blank message &quot;&nbsp;&nbsp;&zwnj;&zwnj;&quot;. Use{' '}
                     <Link
                       href="/decode"
                       style={{ color: '#f0f', textDecoration: 'underline' }}
                     >
                       Decode
-                    </Link>{' '}
-                    to decode.
+                    </Link>
+                    {' '}to decode.
                   </p>
                 </>
               )}
