@@ -17,18 +17,28 @@ export async function POST(request) {
     if (!to || !message) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
-    // no bots pls 
+    // no bots pls
     const userAgent = request.headers.get('user-agent') || ''
-    if (!userAgent || /bot|crawl|spider|curl|wget|python|scrapy/i.test(userAgent)) {
+    if (
+      !userAgent ||
+      /bot|crawl|spider|curl|wget|python|scrapy/i.test(userAgent)
+    ) {
       return NextResponse.json({ error: 'Bots not allowed' }, { status: 403 })
     }
     // Get IP and cookie
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.ip || 'unknown'
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.ip ||
+      'unknown'
     const cookieStore = await cookies()
     let userId = cookieStore.get('nullsms_uid')?.value
     if (!userId) {
       userId = Math.random().toString(36).slice(2)
-      cookieStore.set('nullsms_uid', userId, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 30 })
+      cookieStore.set('nullsms_uid', userId, {
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30,
+      })
     }
     // Check if user has sent SMS
     const key = `${ip}|${userId}`

@@ -89,7 +89,11 @@ export default function Home() {
         .join('')
       bits = bits
         .split('')
-        .map((b, i) => (parseInt(b) ^ parseInt(saltBits[i % saltBits.length] || 0)).toString())
+        .map((b, i) =>
+          (
+            parseInt(b) ^ parseInt(saltBits[i % saltBits.length] || 0)
+          ).toString(),
+        )
         .join('')
     }
     return bits
@@ -111,7 +115,7 @@ export default function Home() {
     setLoading(true)
     setStatus(null)
     // Always encode as invisible ink
-    const saltVal = obfuscate ? (salt || Date.now().toString()) : ''
+    const saltVal = obfuscate ? salt || Date.now().toString() : ''
     const outMsg = encodeInvisibleInk(message, encoder, obfuscate, saltVal)
     try {
       const res = await fetch('/api/sms', {
@@ -205,7 +209,7 @@ export default function Home() {
             }}
           >
             <label style={{ color: '#fff', fontWeight: 700, fontSize: 18 }}>
-              Usage is currently limited to 1 message per day. <br/>
+              Usage is currently limited to 1 message per day. <br />
               Or enter a special password to send more:
             </label>
             <input
@@ -394,9 +398,16 @@ export default function Home() {
                 textAlign: 'center',
                 position: 'relative',
               }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 20, marginBottom: 12 }}>
+              <div
+                style={{
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 20,
+                  marginBottom: 12,
+                }}
+              >
                 No FILE exists
               </div>
               <button
@@ -540,7 +551,8 @@ export default function Home() {
                   />
                   <span style={{ marginRight: 4 }} title="Obfuscate with salt">
                     {' '}
-                    Obfuscate with <span role="img" aria-label="Salt">
+                    Obfuscate with{' '}
+                    <span role="img" aria-label="Salt">
                       🧂
                     </span>
                   </span>
@@ -662,27 +674,34 @@ export default function Home() {
               </div>
               {/* Status/Feedback */}
               {status && (
-                <><div
-                  style={{
-                    background: '#f0f',
-                    color: '#eee',
-                    border: '2px solid #fff',
-                    borderRadius: 4,
-                    padding: 10,
-                    fontWeight: 900,
-                    fontSize: 16,
-                    textAlign: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  {status}
-                </div><p style={{ color: '#eeeeee', }}>
-                    Recipient has been sent a blank message "&nbsp;&nbsp;&zwnj;&zwnj;" Use{' '}
-                    <Link href="/decode" style={{ color: '#f0f', textDecoration: 'underline' }}>
+                <>
+                  <div
+                    style={{
+                      background: '#f0f',
+                      color: '#eee',
+                      border: '2px solid #fff',
+                      borderRadius: 4,
+                      padding: 10,
+                      fontWeight: 900,
+                      fontSize: 16,
+                      textAlign: 'center',
+                      marginTop: 8,
+                    }}
+                  >
+                    {status}
+                  </div>
+                  <p style={{ color: '#eeeeee' }}>
+                    Recipient has been sent a blank message
+                    "&nbsp;&nbsp;&zwnj;&zwnj;" Use{' '}
+                    <Link
+                      href="/decode"
+                      style={{ color: '#f0f', textDecoration: 'underline' }}
+                    >
                       Decode
-                    </Link>
-                    {' '}to decode.
-                  </p></>
+                    </Link>{' '}
+                    to decode.
+                  </p>
+                </>
               )}
             </form>
           </div>
