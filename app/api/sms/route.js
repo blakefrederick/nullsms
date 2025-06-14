@@ -24,7 +24,7 @@ export async function POST(request) {
     }
     // Get IP and cookie
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.ip || 'unknown'
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     let userId = cookieStore.get('nullsms_uid')?.value
     if (!userId) {
       userId = Math.random().toString(36).slice(2)

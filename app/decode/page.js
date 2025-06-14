@@ -140,7 +140,7 @@ export default function Decode() {
               fontFamily: 'Chicago, Monaco, monospace',
             }}
           >
-            Decode Invisible Ink SMS
+            Decode Invisible SMS
           </h1>
           <label
             style={{
@@ -148,7 +148,6 @@ export default function Decode() {
               color: '#fff',
             }}
           >
-            Paste blank/invisible message:
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}

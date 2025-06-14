@@ -280,7 +280,7 @@ export default function Home() {
       <div
         style={{
           maxWidth: 540,
-          margin: '40px auto',
+          margin: '0 auto',
           border: '4px solid #fff',
           borderRadius: 8,
           boxShadow: '0 0 32px #0ff4, 0 0 2px #000',
@@ -424,7 +424,7 @@ export default function Home() {
           <pre
             ref={asciiRef}
             style={{
-              color: '#0ff',
+              color: '#f0f',
               background: 'none',
               margin: 0,
               padding: '0.5em 1em 0 1em',
@@ -536,6 +536,7 @@ export default function Home() {
                     checked={obfuscate}
                     onChange={(e) => setObfuscate(e.target.checked)}
                     style={{ accentColor: '#f0f', marginRight: 4 }}
+                    disabled={true}
                   />
                   <span style={{ marginRight: 4 }} title="Obfuscate with salt">
                     {' '}
@@ -656,15 +657,15 @@ export default function Home() {
                   disabled={!message}
                   title="Copy invisible ink message"
                 >
-                  {copyFeedback ? 'Copied!' : 'Copy'}
+                  {copyFeedback ? 'Copied' : 'Copy'}
                 </button>
               </div>
               {/* Status/Feedback */}
               {status && (
-                <div
+                <><div
                   style={{
                     background: '#f0f',
-                    color: '#111',
+                    color: '#eee',
                     border: '2px solid #fff',
                     borderRadius: 4,
                     padding: 10,
@@ -675,7 +676,13 @@ export default function Home() {
                   }}
                 >
                   {status}
-                </div>
+                </div><p style={{ color: '#eeeeee', }}>
+                    Recipient has been sent a blank message "&nbsp;&nbsp;&zwnj;&zwnj;" Use{' '}
+                    <Link href="/decode" style={{ color: '#f0f', textDecoration: 'underline' }}>
+                      Decode
+                    </Link>
+                    {' '}to decode.
+                  </p></>
               )}
             </form>
           </div>
